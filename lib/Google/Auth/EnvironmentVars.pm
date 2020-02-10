@@ -36,12 +36,13 @@ our $VERSION = '0.01';
 
 Canonical package for reading environment variables used with Google::Auth
 
-=head1 SUBROUTINES/METHODS
+=head1 METHODS
 
 =head2 PROJECT
 
- This used by Google::Auth to explicitly set a project ID. This
- environment variable is also used by the Google Cloud Perl Library.
+This env variable is used by Google::Auth to explicitly set a project
+ID. This environment variable is also used by the Google Cloud Perl
+Library.
 
 =cut
 
@@ -88,8 +89,8 @@ has CLOUD_SDK_CONFIG_DIR => ( is            => 'ro',
 
 =head2 GCE_METADATA_ROOT
 
-The following two variables allow for customization of the addresses
-used when contacting the GCE metadata service.
+This and the following variable allow for customization of the
+addresses used when contacting the GCE metadata service.
 
 =cut
 
