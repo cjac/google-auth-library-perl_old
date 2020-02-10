@@ -18,6 +18,8 @@ use 5.006;
 use strict;
 use warnings;
 
+use Moo;
+
 =head1 NAME
 
 Google::Auth::EnvironmentVars - Environment variables used by Google::Auth
@@ -30,75 +32,83 @@ Version 0.01
 
 our $VERSION = '0.01';
 
-
 =head1 SYNOPSIS
 
 Canonical package for reading environment variables used with Google::Auth
 
 =head1 SUBROUTINES/METHODS
 
-=head2 new
+=head2 PROJECT
+
+ This used by Google::Auth to explicitly set a project ID. This
+ environment variable is also used by the Google Cloud Perl Library.
 
 =cut
 
-sub new {
-  my $class = $_[0];
 
-  my $self;
-  if( ref $class ){
-    $self = $class;
-    $class = ref $class
-  }else{
-    $self = {
-             PROJECT => $ENV{GOOGLE_CLOUD_PROJECT},
-             # Environment variable defining default project.
+has PROJECT => ( is            => 'ro',
+                 builder       => sub { $ENV{GOOGLE_CLOUD_PROJECT} },
+                 documentation => 'Environment variable defining default project',
+               );
 
-             # This used by Google::Auth to explicitly set a project
-             # ID. This environment variable is also used by the
-             # Google Cloud Perl Library.
+=head2 LEGACY_PROJECT
 
-             LEGACY_PROJECT => $ENV{GCLOUD_PROJECT},
-             # Previously used environment variable defining the
-             # default project.
-
-             # This environment variable is used instead of the
-             # current one in some situations (such as Google App
-             # Engine).
-
-             CREDENTIALS => $ENV{GOOGLE_APPLICATION_CREDENTIALS},
-
-             # Environment variable defining the location of Google
-             # application default credentials.
-
-             # The environment variable name which can replace
-             # ~/.config if set.
-             CLOUD_SDK_CONFIG_DIR => $ENV{CLOUDSDK_CONFIG},
-
-             # Environment variable defines the location of Google
-             # Cloud SDK's config files.
-
-             # These two variables allow for customization of the addresses used when
-             # contacting the GCE metadata service.
-             GCE_METADATA_ROOT => $ENV{GCE_METADATA_ROOT},
-
-             # Environment variable providing an alternate hostname or
-             # host:port to be used for GCE metadata requests.
-
-             GCE_METADATA_IP => $ENV{GCE_METADATA_IP}
-
-             # Environment variable providing an alternate ip:port to
-             # be used for ip-only GCE metadata requests.
-            };
-  }
-  return $self;
-}
-
-=head2 function2
+This environment variable is used instead of the current one in some
+situations (such as Google App Engine).
 
 =cut
 
-sub function2 {
-}
+has LEGACY_PROJECT => ( is            => 'ro',
+                        builder       => sub { $ENV{GCLOUD_PROJECT} },
+                        documentation => 'Previously used environment variable defining the default project',
+                      );
+
+=head2 CREDENTIALS
+
+Environment variable defining the location of Google application
+default credentials
+
+=cut
+
+has CREDENTIALS => ( is            => 'ro',
+                     builder       => sub { $ENV{GOOGLE_APPLICATION_CREDENTIALS} },
+                     documentation => 'Environment variable defining the location of Google application default credentials',
+                   );
+
+=head2 CLOUD_SDK_CONFIG_DIR
+
+The environment variable name which can replace ~/.config if set
+
+=cut
+
+has CLOUD_SDK_CONFIG_DIR => ( is            => 'ro',
+                              builder       => sub { $ENV{CLOUDSDK_CONFIG} },
+                              documentation => q{Environment variable defines the location of Google Cloud SDK's config files},
+                            );
+
+=head2 GCE_METADATA_ROOT
+
+The following two variables allow for customization of the addresses
+used when contacting the GCE metadata service.
+
+=cut
+
+has GCE_METADATA_ROOT => ( is            => 'ro',
+                           builder       => sub { $ENV{GCE_METADATA_ROOT} },
+                           documentation => 'Environment variable providing an alternate hostname or host:port to be '.
+                                            'used for GCE metadata requests',
+                         );
+
+=head2 GCE_METADATA_IP
+
+=cut
+
+has GCE_METADATA_IP => ( is            => 'ro',
+                         builder       => sub { $ENV{GCE_METADATA_IP} },
+                         documentation => 'Environment variable providing an alternate ip:port to be used for ip-only '.
+                                          'GCE metadata requests',
+                       );
+
 
 =head1 AUTHOR
 
@@ -117,7 +127,7 @@ automatically be notified of progress on your bug as I make changes.
 
 You can find documentation for this module with the perldoc command.
 
-    perldoc Google::Auth
+    perldoc Google::Auth::EnvironmentVars
 
 
 You can also look for information at:
