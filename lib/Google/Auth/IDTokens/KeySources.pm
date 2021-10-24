@@ -5,11 +5,11 @@ use URI;
 use DateTime;
 use JSON::XS;
 use Mutex;
+use HTTP::Request::Common;
 use LWP::UserAgent;
 use Crypt::PK::ECC;
 use Crypt::PK::RSA;
 use Crypt::X509;
-
 
 # Copyright 2020 Google LLC
 #
@@ -244,7 +244,13 @@ package Google::Auth::IDTokens::HttpKeySource;
                              monitor          => Mutex->new,
                              uri              => URI->new( $params->{uri} ),
                            }, $class;
-          $self->{ua} = LWP::UserAgent->new(timeout => 10);
+
+          if(exists $ENV{TESTING} && $ENV{TESTING} ){
+            $self->{ua} = $KeySourcesTest::useragent;
+          }else{
+            $self->{ua} = LWP::UserAgent->new(timeout => 10);
+          }
+
           return $self;
         }
 
@@ -270,14 +276,17 @@ package Google::Auth::IDTokens::HttpKeySource;
         #
         sub refresh_keys {
           my($self) = @_;
-          return @{$self->{current_keys}} if DateTime->compare(DateTime->now, $self->{allow_refresh_at}) <= 0;
+          return @{$self->{current_keys}} if DateTime->compare(DateTime->now, $self->{allow_refresh_at}) < 0;
+
           $self->{allow_refresh_at} = DateTime->now()->add( seconds => $self->{retry_interval} );
-          my $response = $self->{ua}->get($self->{uri});
-          die("Unable to retrieve data from $self->{uri}: " . $response->status_line())
+
+          my $response = $self->{ua}->get( $self->{uri} );
+
+          die("KeySourceError: Unable to retrieve data from $self->{uri}: " . $response->status_line())
             unless $response->is_success;
 
           my $data = eval { $coder->decode ($response->decoded_content) };
-          die "Unable to parse JSON: $@" if $@;
+          die "KeySourceError: Unable to parse JSON: $@" if $@;
 
           $self->{current_keys} = [$self->interpret_json($data)];
         }
