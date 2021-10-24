@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+package Google::Auth::IDTokens::KeySources;
+
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,18 +16,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+1;
 
-require "base64"
-require "json"
-require "monitor"
-require "net/http"
-require "openssl"
-
-require "jwt"
-
-module Google
-  module Auth
-    module IDTokens
       ##
       # A public key used for verifying ID tokens.
       #
@@ -33,39 +25,53 @@ module Google
       # signature verification. RSA and Elliptical Curve (EC) keys are
       # supported.
       #
-      class KeyInfo
+
+package Google::Auth::IDTokens::KeyInfo;
+use URI;
+use DateTime;
+use JSON::XS;
+use Mutex;
+use LWP::UserAgent;
+use Crypt::PK::ECC;
+use Crypt::PK::RSA;
+use Crypt::X509;
+
+my $coder = JSON::XS->new->ascii->pretty->allow_nonref;
+
         ##
         # Create a public key info structure.
         #
         # @param id [String] The key ID.
-        # @param key [OpenSSL::PKey::RSA,OpenSSL::PKey::EC] The key itself.
+        # @param key [Crypt::PK::RSA,Crypt::PK::ECC] The key itself.
         # @param algorithm [String] The algorithm (normally `RS256` or `ES256`)
         #
-        def initialize id: nil, key: nil, algorithm: nil
-          @id = id
-          @key = key
-          @algorithm = algorithm
-        end
+        sub new {
+          my( $class, $params ) = @_;
+          $class = ref $class if ref $class;
+          my $self = bless { id        => $params->{id}        // undef,
+                             key       => $params->{key}       // undef,
+                             algorithm => $params->{algorithm} // undef,
+                           }, $class;
+        }
 
         ##
         # The key ID.
         # @return [String]
         #
-        attr_reader :id
+        sub id { return $_[0]->{id} }
 
         ##
         # The key itself.
         # @return [OpenSSL::PKey::RSA,OpenSSL::PKey::EC]
         #
-        attr_reader :key
+        sub key { return $_[0]->{key} }
 
         ##
         # The signature algorithm. (normally `RS256` or `ES256`)
         # @return [String]
         #
-        attr_reader :algorithm
+        sub algorithm { return $_[0]->{algorithm} }
 
-        class << self
           ##
           # Create a KeyInfo from a single JWK, which may be given as either a
           # hash or an unparsed JSON string.
@@ -75,21 +81,24 @@ module Google
           # @raise [KeySourceError] If the key could not be extracted from the
           #     JWK.
           #
-          def from_jwk jwk
-            jwk = symbolize_keys ensure_json_parsed jwk
-            key = case jwk[:kty]
-                  when "RSA"
-                    extract_rsa_key jwk
-                  when "EC"
-                    extract_ec_key jwk
-                  when nil
-                    raise KeySourceError, "Key type not found"
-                  else
-                    raise KeySourceError, "Cannot use key type #{jwk[:kty]}"
-                  end
-            new id: jwk[:kid], key: key, algorithm: jwk[:alg]
-          end
+        sub from_jwk {
+          my( $self, $jwk ) = @_;
+          $jwk = ensure_json_parsed( $jwk );
+          if( $jwk->{kty} eq 'RSA' ){
+            $self->{key} = $self->extract_rsa_key( $jwk );
+          }elsif( $jwk->{kty} eq 'EC' ){
+            $self->{key} = $self->extract_ec_key( $jwk );
+          }elsif( !defined $jwk->{kty}  ){
+            die "Key type not found";
+          }else{
+            die "Cannot use key type [$jwk->{kty}]"
+          }
+          $self->{id} = $jwk->{kid};
+          $self->{key} = $pub_key;
+          $self->{algorithm} = $jwk->{alg};
 
+          return $self;
+        }
           ##
           # Create an array of KeyInfo from a JWK Set, which may be given as
           # either a hash or an unparsed JSON string.
@@ -99,97 +108,84 @@ module Google
           # @raise [KeySourceError] If a key could not be extracted from the
           #     JWK Set.
           #
-          def from_jwk_set jwk_set
-            jwk_set = symbolize_keys ensure_json_parsed jwk_set
-            jwks = jwk_set[:keys]
-            raise KeySourceError, "No keys found in jwk set" unless jwks
-            jwks.map { |jwk| from_jwk jwk }
-          end
+        sub from_jwk_set {
+          my( $self, $jwk_set ) = @_;
+          $jwk_set = ensure_json_parsed( $jwk_set );
+          die "No keys found in jwk set" unless( exists $jwks->{keys} &&
+                                                 ref $jwks->{keys} eq 'ARRAY' );
+          my $jwks = [ map { from_jwk( $_ ) } @{$jwk_set->{keys}} ];
+        }
 
-          private
+        sub ensure_json_parsed {
+          my( $self, $input ) = @_;
+          return $input if ref $input;
+          my $decoded = eval { $coder->decode ($input) };
+          die "Unable to parse JSON: $@" if $@;
+          return $decoded
+        }
 
-          def ensure_json_parsed input
-            return input unless input.is_a? String
-            JSON.parse input
-          rescue JSON::ParserError
-            raise KeySourceError, "Unable to parse JSON"
-          end
+        sub symbolize_keys {
+          my( $self, $hash ) = @_;
+          my $result = {};
+          while( my($key,$val) = each %$hash ){
+            $result->{$key} = $val
+          }
+          return $result;
+        }
 
-          def symbolize_keys hash
-            result = {}
-            hash.each { |key, val| result[key.to_sym] = val }
-            result
-          end
+        sub extract_rsa_key {
+          my( $self, $jwk ) = @_;
 
-          def extract_rsa_key jwk
-            begin
-              n_data = Base64.urlsafe_decode64 jwk[:n]
-              e_data = Base64.urlsafe_decode64 jwk[:e]
-            rescue ArgumentError
-              raise KeySourceError, "Badly formatted key data"
-            end
-            n_bn = OpenSSL::BN.new n_data, 2
-            e_bn = OpenSSL::BN.new e_data, 2
-            rsa_key = OpenSSL::PKey::RSA.new
-            if rsa_key.respond_to? :set_key
-              rsa_key.set_key n_bn, e_bn, nil
-            else
-              rsa_key.n = n_bn
-              rsa_key.e = e_bn
-            end
-            rsa_key.public_key
-          end
+          my $pk = Crypt::PK::RSA->new();
+          $pk->import_key( $jwk );
+          return $pk;
+        }
 
           # @private
-          CURVE_NAME_MAP = {
+        my $CURVE_NAME_MAP = {
             "P-256"     => "prime256v1",
             "P-384"     => "secp384r1",
             "P-521"     => "secp521r1",
             "secp256k1" => "secp256k1"
-          }.freeze
+        };
 
-          def extract_ec_key jwk
-            begin
-              x_data = Base64.urlsafe_decode64 jwk[:x]
-              y_data = Base64.urlsafe_decode64 jwk[:y]
-            rescue ArgumentError
-              raise KeySourceError, "Badly formatted key data"
-            end
-            curve_name = CURVE_NAME_MAP[jwk[:crv]]
-            raise KeySourceError, "Unsupported EC curve #{jwk[:crv]}" unless curve_name
-            group = OpenSSL::PKey::EC::Group.new curve_name
-            x_hex = x_data.unpack1 "H*"
-            y_hex = y_data.unpack1 "H*"
-            bn = OpenSSL::BN.new ["04#{x_hex}#{y_hex}"].pack("H*"), 2
-            key = OpenSSL::PKey::EC.new curve_name
-            key.public_key = OpenSSL::PKey::EC::Point.new group, bn
-            key
-          end
-        end
-      end
+        sub extract_ec_key {
+          my($self, $jwk) = @_;
+          die "Unsupported EC curve $jwk->{crv}"
+            unless exists $CURVE_NAME_MAP->{$jwk->{crv}};
 
+          my $pk = Crypt::PK::ECC->new();
+          $pk->import_key( $jwk );
+
+          return $pk;
+        }
+
+1;
+
+package Google::Auth::IDTokens::StaticKeySource;
       ##
       # A key source that contains a static set of keys.
       #
-      class StaticKeySource
         ##
         # Create a static key source with the given keys.
         #
         # @param keys [Array<KeyInfo>] The keys
         #
-        def initialize keys
-          @current_keys = Array(keys)
-        end
+        sub new {
+          my( $class, $params ) = @_;
+          $class = ref $class if ref $class;
+          my $self = bless { current_keys => [@{$params->{keys}}] }, $class;
+          return $self;
+        }
 
         ##
         # Return the current keys. Does not perform any refresh.
         #
         # @return [Array<KeyInfo>]
         #
-        attr_reader :current_keys
-        alias refresh_keys current_keys
+        sub attr_reader { return @{$self->{current_keys}} };
+        *refresh_keys = \&attr_reader;
 
-        class << self
           ##
           # Create a static key source containing a single key parsed from a
           # single JWK, which may be given as either a hash or an unparsed
@@ -198,9 +194,10 @@ module Google
           # @param jwk [Hash,String] The JWK specification.
           # @return [StaticKeySource]
           #
-          def from_jwk jwk
-            new KeyInfo.from_jwk jwk
-          end
+        sub from_jwk {
+          my($self,$jwk) = @_;
+          return Google::Auth::IDTokens::KeyInfo->new()->from_jwk( $jwk );
+        }
 
           ##
           # Create a static key source containing multiple keys parsed from a
@@ -210,23 +207,24 @@ module Google
           # @param jwk_set [Hash,String] The JWK Set specification.
           # @return [StaticKeySource]
           #
-          def from_jwk_set jwk_set
-            new KeyInfo.from_jwk_set jwk_set
-          end
-        end
-      end
+        sub from_jwk {
+          my($self,$jwk_set) = @_;
+          return Google::Auth::IDTokens::KeyInfo->new()->from_jwk_set( $jwk_set );
+        }
 
+1;
+
+package Google::Auth::IDTokens::HttpKeySource;
       ##
       # A base key source that downloads keys from a URI. Subclasses should
       # override {HttpKeySource#interpret_json} to parse the response.
       #
-      class HttpKeySource
         ##
         # The default interval between retries in seconds (3600s = 1hr).
         #
         # @return [Integer]
         #
-        DEFAULT_RETRY_INTERVAL = 3600
+        our $DEFAULT_RETRY_INTERVAL = 3600;
 
         ##
         # Create an HTTP key source.
@@ -236,26 +234,31 @@ module Google
         #     seconds. This is the minimum time between retries of failed key
         #     downloads.
         #
-        def initialize uri, retry_interval: nil
-          @uri = URI uri
-          @retry_interval = retry_interval || DEFAULT_RETRY_INTERVAL
-          @allow_refresh_at = Time.now
-          @current_keys = []
-          @monitor = Monitor.new
-        end
+        sub new {
+          my( $class, $params ) = @_;
+          $class = ref $class if ref $class;
+          my $self = bless { retry_interval   => $params->{retry_interval} || $DEFAULT_RETRY_INTERVAL,
+                             allow_refresh_at => DateTime->now,
+                             current_keys     => [],
+                             monitor          => Mutex->new,
+                             uri              => URI->new( $params->{uri} ),
+                           }, $class;
+          $self->{ua} = LWP::UserAgent->new(timeout => 10);
+          return $self;
+        }
 
         ##
         # The URI from which to download keys.
         # @return [Array<KeyInfo>]
         #
-        attr_reader :uri
+        sub uri { return $_[0]->{uri} }
 
         ##
         # Return the current keys, without attempting to re-download.
         #
         # @return [Array<KeyInfo>]
         #
-        attr_reader :current_keys
+        sub current_keys { return $_[0]->{current_keys} }
 
         ##
         # Attempt to re-download keys (if the retry interval has expired) and
@@ -264,36 +267,35 @@ module Google
         # @return [Array<KeyInfo>]
         # @raise [KeySourceError] if key retrieval failed.
         #
-        def refresh_keys
-          @monitor.synchronize do
-            return @current_keys if Time.now < @allow_refresh_at
-            @allow_refresh_at = Time.now + @retry_interval
+        sub refresh_keys {
+          my($self) = @_;
+          return @{$self->{current_keys}} if DateTime->compare(DateTime->now, $self->{allow_refresh_at}) <= 0;
+          $self->{allow_refresh_at} = DateTime->now()->add( seconds => $self->{retry_interval} );
+          my $response = $self->{ua}->get($self->{uri});
+          die("Unable to retrieve data from $self->{uri}: " . $response->status_line())
+            unless $response->is_success;
 
-            response = Net::HTTP.get_response uri
-            raise KeySourceError, "Unable to retrieve data from #{uri}" unless response.is_a? Net::HTTPSuccess
+          my $data = eval { $coder->decode ($response->decoded_content) };
+          die "Unable to parse JSON: $@" if $@;
 
-            data = begin
-              JSON.parse response.body
-            rescue JSON::ParserError
-              raise KeySourceError, "Unable to parse JSON"
-            end
+          $self->{current_keys} = [$self->interpret_json($data)];
+        }
 
-            @current_keys = Array(interpret_json(data))
-          end
-        end
+        sub intepret_json {
+          my($self,$data) = @_;
 
-        protected
+          die "Subclasses should override interpret_json to parse the response.";
+        }
 
-        def interpret_json _data
-          nil
-        end
-      end
+1;
 
+package Google::Auth::IDTokens::X509CertHttpKeySource;
+use base 'Google::Auth::IDTokens::HttpKeySource';
       ##
       # A key source that downloads X509 certificates.
       # Used by the legacy OAuth V1 public certs endpoint.
       #
-      class X509CertHttpKeySource < HttpKeySource
+
         ##
         # Create a key source that downloads X509 certificates.
         #
@@ -304,27 +306,31 @@ module Google
         #     seconds. This is the minimum time between retries of failed key
         #     downloads.
         #
-        def initialize uri, algorithm: "RS256", retry_interval: nil
-          super uri, retry_interval: retry_interval
-          @algorithm = algorithm
-        end
+        sub new {
+          my( $class, $params ) = @_;
+          $class = ref $class if ref $class;
+          my $self = $class->SUPER::new($params);
+          $self->{algorithm} = $algorithm || 'RS256';
+          return $self;
+        }
 
-        protected
+        sub interpret_json {
+          my($self,$data) = @_;
+          return map {
+            Google::Auth::IDTokens::KeyInfo->
+                new({ id        => $_,
+                      key       => $Crypt::X509->new(cert => $data->{$_})->pubkey,
+                      algorithm => $self->{algorithm}
+                    });
+          } keys %$data;
+          return @current_keys;
+        }
 
-        def interpret_json data
-          data.map do |id, cert_str|
-            key = OpenSSL::X509::Certificate.new(cert_str).public_key
-            KeyInfo.new id: id, key: key, algorithm: @algorithm
-          end
-        rescue OpenSSL::X509::CertificateError
-          raise KeySourceError, "Unable to parse X509 certificates"
-        end
-      end
-
+package Google::Auth::IDTokens::JwkHttpKeySource;
+use base 'Google::Auth::IDTokens::HttpKeySource';
       ##
       # A key source that downloads a JWK set.
       #
-      class JwkHttpKeySource < HttpKeySource
         ##
         # Create a key source that downloads a JWT Set.
         #
@@ -333,40 +339,41 @@ module Google
         #     seconds. This is the minimum time between retries of failed key
         #     downloads.
         #
-        def initialize uri, retry_interval: nil
-          super uri, retry_interval: retry_interval
-        end
+        sub interpret_json {
+          my($self,$data) = @_;
+          Google::Auth::IDTokens::KeyInfo->from_jwk_set($data);
+        }
 
-        protected
-
-        def interpret_json data
-          KeyInfo.from_jwk_set data
-        end
-      end
-
+package Google::Auth::IDTokens::AggregateKeySource;
       ##
       # A key source that aggregates other key sources. This means it will
       # aggregate the keys provided by its constituent sources. Additionally,
       # when asked to refresh, it will refresh all its constituent sources.
       #
-      class AggregateKeySource
         ##
         # Create a key source that aggregates other key sources.
         #
         # @param sources [Array<key source>] The key sources to aggregate.
         #
-        def initialize sources
-          @sources = Array(sources)
-        end
+        sub new {
+          my( $class, $params ) = @_;
+          $class = ref $class if ref $class;
+          my $self = bless { sources => [@{$params->{sources}}] }, $class;
+          return $self;
+        }
 
         ##
         # Return the current keys, without attempting to refresh.
         #
         # @return [Array<KeyInfo>]
         #
-        def current_keys
-          @sources.flat_map(&:current_keys)
-        end
+        sub current_keys {
+          my @current_keys_set;
+          foreach my $source ( @{$self->{sources}} ){
+            push(@current_keys_set, $source->current_keys);
+          }
+          return @current_keys_set;
+        }
 
         ##
         # Attempt to refresh keys and return the new keys.
@@ -374,10 +381,12 @@ module Google
         # @return [Array<KeyInfo>]
         # @raise [KeySourceError] if key retrieval failed.
         #
-        def refresh_keys
-          @sources.flat_map(&:refresh_keys)
-        end
-      end
-    end
-  end
-end
+        sub current_keys {
+          my @current_keys_set;
+          foreach my $source ( @{$self->{sources}} ){
+            eval { $source->refresh_keys(); };
+            die "KeySourceError: $@" if $@;
+            push(@current_keys_set, $source->current_keys);
+          }
+          return @current_keys_set;
+        }
