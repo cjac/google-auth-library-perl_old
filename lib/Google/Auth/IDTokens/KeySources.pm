@@ -1,6 +1,15 @@
 # frozen_string_literal: true
 
 package Google::Auth::IDTokens::KeySources;
+use URI;
+use DateTime;
+use JSON::XS;
+use Mutex;
+use LWP::UserAgent;
+use Crypt::PK::ECC;
+use Crypt::PK::RSA;
+use Crypt::X509;
+
 
 # Copyright 2020 Google LLC
 #
@@ -27,14 +36,6 @@ package Google::Auth::IDTokens::KeySources;
       #
 
 package Google::Auth::IDTokens::KeyInfo;
-use URI;
-use DateTime;
-use JSON::XS;
-use Mutex;
-use LWP::UserAgent;
-use Crypt::PK::ECC;
-use Crypt::PK::RSA;
-use Crypt::X509;
 
 my $coder = JSON::XS->new->ascii->pretty->allow_nonref;
 
@@ -183,8 +184,8 @@ package Google::Auth::IDTokens::StaticKeySource;
         #
         # @return [Array<KeyInfo>]
         #
-        sub attr_reader { return @{$self->{current_keys}} };
-        *refresh_keys = \&attr_reader;
+        sub current_keys { return $_[0]->{current_keys} };
+        *refresh_keys = \&current_keys;
 
           ##
           # Create a static key source containing a single key parsed from a
