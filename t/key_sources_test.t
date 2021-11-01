@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+use Data::Dumper;
+
 use strict;
 use warnings;
 use Test::More;
@@ -21,12 +23,20 @@ use Test::Deep;
 use Test::LWP::UserAgent;
 use Test::More;
 
+use Crypt::PK::ECC;
+use Crypt::PK::RSA;
+use Crypt::OpenSSL::CA;
+
+use FindBin;
+
+use DateTime;
+
 {
   package KeySourcesTest;
   our $useragent = Test::LWP::UserAgent->new();
 }
 
-plan tests => 7;
+plan tests => 8;
 
 use Google::Auth::IDTokens::KeySources;
 
@@ -74,3 +84,51 @@ is_deeply( $source->current_keys, [], 'gets no keys from JSON' );
 #
 # X509CertHttpKeySource
 #
+
+$key1 = Crypt::PK::RSA->new();
+$key1->generate_key( 256, 65537 );
+
+$key2 = Crypt::PK::RSA->new();
+$key2->generate_key( 256, 65537 );
+
+my( $id1, $id2 ) = ( "1234", "5678" );
+
+my $coder = JSON::XS->new->ascii->pretty->allow_nonref;
+
+my $dn = Crypt::OpenSSL::CA::X509_NAME->new
+  (C => 'BE', O => 'Test', OU => 'Test', CN => 'Test');
+
+ok( defined $dn, 'instance of Crypt::OpenSSL::CA::X509_Name is defined' );
+
+my( $cert1, $cert2 ) = ( generate_cert( $key1 ),
+                         generate_cert( $key2 ),
+                       );
+
+$certs_body = $coder->encode( { $id1 => $cert1->{pem},
+                                $id2 => $cert2->{pem} } );
+
+sub generate_cert {
+  my( $key ) = @_;
+
+  my $k = Crypt::OpenSSL::CA::PrivateKey->parse($key->export_key_pem('private'));
+  my $pubkey = $k->get_public_key;
+
+  my $x509 = Crypt::OpenSSL::CA::X509->new($pubkey);
+  $x509->set_subject_DN( $dn );
+  $x509->set_issuer_DN( $dn );
+  $x509->set_notBefore( DateTime->now->strftime("%Y%m%d%H%M%SZ") );
+  $x509->set_notAfter( DateTime->now->add( days => 365 )->strftime("%Y%m%d%H%M%SZ") );
+  $x509->set_serial( "0x0" );
+  my $pem = $x509->sign( $k, "sha1" );
+
+  return { pem => $pem,
+           x509 => $x509 };
+}
+
+diag Data::Dumper::Dumper($certs_body);
+
+
+#qr/KeySourceError: Unable to retrieve data from $certs_uri/,
+#  'raises an error when failing to parse json from the site';
+
+#my $not_found_hr = HTTP::Response->new('404', 'Not Found', ['Content-Type' => 'text/plain'], 'whoops');
