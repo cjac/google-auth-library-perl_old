@@ -276,7 +276,11 @@ package Google::Auth::IDTokens::HttpKeySource;
         #
         sub refresh_keys {
           my($self) = @_;
-          return @{$self->{current_keys}} if DateTime->compare(DateTime->now, $self->{allow_refresh_at}) < 0;
+          if( DateTime->compare(DateTime->now, $self->{allow_refresh_at}) < 0 ){
+            print STDERR 'cache hit',$/ if $ENV{TESTING};
+            return @{$self->{current_keys}};
+          }
+          print STDERR 'cache miss',$/ if $ENV{TESTING};
 
           $self->{allow_refresh_at} = DateTime->now()->add( seconds => $self->{retry_interval} );
 
@@ -291,10 +295,9 @@ package Google::Auth::IDTokens::HttpKeySource;
           $self->{current_keys} = [$self->interpret_json($data)];
         }
 
-        sub intepret_json {
+        sub interpret_json {
           my($self,$data) = @_;
-
-          die "Subclasses should override interpret_json to parse the response.";
+          return();
         }
 
 1;
@@ -320,7 +323,7 @@ use base 'Google::Auth::IDTokens::HttpKeySource';
           my( $class, $params ) = @_;
           $class = ref $class if ref $class;
           my $self = $class->SUPER::new($params);
-          $self->{algorithm} = $algorithm || 'RS256';
+          $self->{algorithm} ||= $params->{algorithm} || 'RS256';
           return $self;
         }
 

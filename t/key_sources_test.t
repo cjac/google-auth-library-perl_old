@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2020,2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ use DateTime;
   our $useragent = Test::LWP::UserAgent->new();
 }
 
-plan tests => 8;
+plan tests => 18;
 
 use Google::Auth::IDTokens::KeySources;
 
@@ -59,31 +59,67 @@ is_deeply($keys, $source->refresh_keys, 'does not change on refresh');
 
 my $certs_uri = "https://example.com/my-certs";
 my $certs_body = {};
-
-$source = Google::Auth::IDTokens::HttpKeySource->new( {uri => $certs_uri} );
+my $certs_body_json = "{}";
 
 my $ua = $KeySourcesTest::useragent;
 
-my $not_json_hr =
-  HTTP::Response->new('200', 'OK', ['Content-Type' => 'text/plain'], 'whoops');
+my $response;
+
+#
+# Not JSON
+#
+
+my $not_json_hr   = HTTP::Response->new('200', 'OK', ['Content-Type' => 'text/plain'], 'whoops');
+$ua->unmap_all();
 $ua->map_response(qr/\Q$certs_uri\E/, $not_json_hr);
-
+$source = Google::Auth::IDTokens::HttpKeySource->new( {uri => $certs_uri} );
 throws_ok { $source->refresh_keys } qr/KeySourceError: Unable to parse JSON/,
-  'raises an error when failing to parse json from the site';
+  'raises an error when failing to parse json from the site, class=' . ref $source;
 is( $ua->last_http_request_sent->uri, $certs_uri,
-    'uri matches the one my code should have constructed' );
+    'uri matches the one expected' );
 
+$response = $ua->last_http_response_received;
+is( $response->{_rc}, 200, 'return code matches' );
+is( $response->{_content}, 'whoops', 'content matches' );
 
-my $empty_json_hr = HTTP::Response->new('200', 'OK', ['Content-Type' => 'text/plain'], $certs_body);
+#
+# Empty JSON
+#
+
+my $empty_json_hr = HTTP::Response->new('200', 'OK', ['Content-Type' => 'text/plain'], $certs_body_json);
+$ua->unmap_all();
 $ua->map_response(qr/\Q$certs_uri\E/, $empty_json_hr);
+$source = Google::Auth::IDTokens::HttpKeySource->new( {uri => $certs_uri} );
+lives_ok { $source->refresh_keys } 'downloads data but gets no keys';
 
-
-lives_ok { $source->refresh_keys } 'downloads data';
+$response = $ua->last_http_response_received;
+is( $response->{_rc}, 200, 'empty JSON return code matches' );
+is( $response->{_content}, $certs_body_json, 'empty JSON content matches' );
 is_deeply( $source->current_keys, [], 'gets no keys from JSON' );
+
+#
+# Not found
+#
+
+my $not_found_hr  = HTTP::Response->new('404', 'Not Found', ['Content-Type' => 'text/plain'], 'not a found');
+$ua->unmap_all();
+$ua->map_response(qr/\Q$certs_uri\E/, $not_json_hr);
+$source = Google::Auth::IDTokens::HttpKeySource->new( {uri => $certs_uri} );
+throws_ok { $source->refresh_keys } qr/KeySourceError: Unable to parse JSON/,
+  'raises an error when failing to parse json from the site, class=' . ref $source;
+is( $response->{_rc}, 404, 'return code matches' );
+is( $response->{_content}, 'not a found', 'content matches' );
+
+
 
 #
 # X509CertHttpKeySource
 #
+
+my $dn = Crypt::OpenSSL::CA::X509_NAME->new
+  (C => 'BE', O => 'Test', OU => 'Test', CN => 'Test');
+
+ok( defined $dn, 'instance of Crypt::OpenSSL::CA::X509_Name is defined' );
 
 $key1 = Crypt::PK::RSA->new();
 $key1->generate_key( 256, 65537 );
@@ -91,18 +127,13 @@ $key1->generate_key( 256, 65537 );
 $key2 = Crypt::PK::RSA->new();
 $key2->generate_key( 256, 65537 );
 
-my( $id1, $id2 ) = ( "1234", "5678" );
-
-my $coder = JSON::XS->new->ascii->pretty->allow_nonref;
-
-my $dn = Crypt::OpenSSL::CA::X509_NAME->new
-  (C => 'BE', O => 'Test', OU => 'Test', CN => 'Test');
-
-ok( defined $dn, 'instance of Crypt::OpenSSL::CA::X509_Name is defined' );
-
 my( $cert1, $cert2 ) = ( generate_cert( $key1 ),
                          generate_cert( $key2 ),
                        );
+
+my( $id1, $id2 ) = ( "1234", "5678" );
+
+my $coder = JSON::XS->new->ascii->pretty->allow_nonref;
 
 $certs_body = $coder->encode( { $id1 => $cert1->{pem},
                                 $id2 => $cert2->{pem} } );
@@ -110,7 +141,7 @@ $certs_body = $coder->encode( { $id1 => $cert1->{pem},
 sub generate_cert {
   my( $key ) = @_;
 
-  my $k = Crypt::OpenSSL::CA::PrivateKey->parse($key->export_key_pem('private'));
+  my $k = Crypt::OpenSSL::CA::PrivateKey->parse( $key->export_key_pem('private') );
   my $pubkey = $k->get_public_key;
 
   my $x509 = Crypt::OpenSSL::CA::X509->new($pubkey);
@@ -119,16 +150,37 @@ sub generate_cert {
   $x509->set_notBefore( DateTime->now->strftime("%Y%m%d%H%M%SZ") );
   $x509->set_notAfter( DateTime->now->add( days => 365 )->strftime("%Y%m%d%H%M%SZ") );
   $x509->set_serial( "0x0" );
-  my $pem = $x509->sign( $k, "sha1" );
 
-  return { pem => $pem,
+  return { pem  => $x509->sign( $k, "sha1" ),
            x509 => $x509 };
 }
 
-diag Data::Dumper::Dumper($certs_body);
+$ua->unmap_all();
+$ua->map_response(qr/\Q$certs_uri\E/, $not_found_hr);
+
+$source = Google::Auth::IDTokens::X509CertHttpKeySource->new( {uri => $certs_uri} );
+throws_ok { $source->refresh_keys; }
+  qr/KeySourceError: Unable to retrieve data from $certs_uri/,
+  'raises an error when failing to reach the site';
+
+$ua->unmap_all();
+$ua->map_response(qr/\Q$certs_uri\E/, $not_json_hr);
+
+$source = Google::Auth::IDTokens::X509CertHttpKeySource->new( {uri => $certs_uri} );
+throws_ok { $source->refresh_keys } qr/KeySourceError: Unable to parse JSON/,
+  'raises an error when failing to parse json from the site, class=' . ref $source;
+is( $ua->last_http_request_sent->uri, $certs_uri,
+    'uri matches the one expected' );
+
+
+#diag $obj->{ua};
+
+#diag Data::Dumper::Dumper( $ua->last_http_response_received );
+
+#diag Data::Dumper::Dumper($certs_body);
 
 
 #qr/KeySourceError: Unable to retrieve data from $certs_uri/,
-#  'raises an error when failing to parse json from the site';
+#  'raises an error when failing to parse json from the site, class=' . ref $source;
 
 #my $not_found_hr = HTTP::Response->new('404', 'Not Found', ['Content-Type' => 'text/plain'], 'whoops');
