@@ -159,7 +159,7 @@ L<https://metacpan.org/release/Google-Auth-Library-Perl>
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2020 C.J. Collier.
+Copyright 2020,2021 Google LLC
 
 This program is released under the following license: Apache 2.0
 
