@@ -15,7 +15,17 @@ WriteMakefile(
         'ExtUtils::MakeMaker' => '0',
     },
     BUILD_REQUIRES => {
+        'DateTime' => '0',
         'Test::More' => '0',
+        'Test::Exception' => '0',
+        'Test::LWP::UserAgent' => '0',
+        'JSON::XS' => '0',
+        'HTTP::Request::Common' => '0',
+        'LWP::UserAgent' => '0',
+        'Crypt::PK::ECC' => 0,
+        'Crypt::PK::RSA' => 0,
+        'Crypt::X509' => 0,
+
     },
     PREREQ_PM => {
         #'ABC'              => '1.6',
