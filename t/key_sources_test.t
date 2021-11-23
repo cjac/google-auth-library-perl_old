@@ -40,7 +40,7 @@ use DateTime;
   our $useragent = Test::LWP::UserAgent->new();
 }
 
-plan tests => 18;
+plan tests => 19;
 
 use Google::Auth::IDTokens::KeySources;
 
@@ -177,6 +177,14 @@ throws_ok { $source->refresh_keys } qr/KeySourceError: Unable to parse JSON/,
   'raises an error when failing to parse json from the site, class=' . ref $source;
 is( $ua->last_http_request_sent->uri, $certs_uri,
     'uri matches the one expected' );
+
+my $not_x509_hr  = HTTP::Response->new('200', 'OK', ['Content-Type' => 'text/plain'], '{"hi": "whoops"}');
+$source = Google::Auth::IDTokens::X509CertHttpKeySource->new( {uri => $certs_uri} );
+
+$ua->unmap_all();
+$ua->map_response(qr/\Q$certs_uri\E/, $not_x509_hr);
+
+lives_ok { $source->refresh_keys } 'raises an error when failing to parse x509 from the site';
 
 
 #diag $obj->{ua};

@@ -332,7 +332,7 @@ use base 'Google::Auth::IDTokens::HttpKeySource';
           return map {
             Google::Auth::IDTokens::KeyInfo->
                 new({ id        => $_,
-                      key       => $Crypt::X509->new(cert => $data->{$_})->pubkey,
+                      key       => Crypt::X509->new(cert => $data->{$_})->pubkey,
                       algorithm => $self->{algorithm}
                     });
           } keys %$data;
