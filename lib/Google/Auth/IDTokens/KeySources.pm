@@ -335,8 +335,7 @@ use base 'Google::Auth::IDTokens::HttpKeySource';
                       key       => Crypt::X509->new(cert => $data->{$_})->pubkey,
                       algorithm => $self->{algorithm}
                     });
-          } keys %$data;
-          return @current_keys;
+          } sort keys %$data;
         }
 
 package Google::Auth::IDTokens::JwkHttpKeySource;

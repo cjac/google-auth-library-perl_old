@@ -40,7 +40,7 @@ use DateTime;
   our $useragent = Test::LWP::UserAgent->new();
 }
 
-plan tests => 19;
+plan tests => 25;
 
 use Google::Auth::IDTokens::KeySources;
 
@@ -141,8 +141,9 @@ my( $id1, $id2 ) = ( "1234", "5678" );
 
 my $coder = JSON::XS->new->ascii->pretty->allow_nonref;
 
-$certs_body = $coder->encode( { $id1 => $cert1->{pem},
-                                $id2 => $cert2->{pem} } );
+$certs_body = { $id1 => $cert1->{pem},
+                $id2 => $cert2->{pem} };
+$certs_body_json = $coder->encode ( $certs_body );
 
 sub generate_cert {
   my( $key ) = @_;
@@ -161,6 +162,10 @@ sub generate_cert {
            x509 => $x509 };
 }
 
+#
+# Correct exception thrown when JSON not found
+#
+
 $ua->unmap_all();
 $ua->map_response(qr/\Q$certs_uri\E/, $not_found_hr);
 
@@ -168,6 +173,10 @@ $source = Google::Auth::IDTokens::X509CertHttpKeySource->new( {uri => $certs_uri
 throws_ok { $source->refresh_keys; }
   qr/KeySourceError: Unable to retrieve data from $certs_uri/,
   'raises an error when failing to reach the site';
+
+#
+# Correct exception thrown when content is not JSON
+#
 
 $ua->unmap_all();
 $ua->map_response(qr/\Q$certs_uri\E/, $not_json_hr);
@@ -178,6 +187,10 @@ throws_ok { $source->refresh_keys } qr/KeySourceError: Unable to parse JSON/,
 is( $ua->last_http_request_sent->uri, $certs_uri,
     'uri matches the one expected' );
 
+#
+# Negative x509 test
+#
+
 my $not_x509_hr  = HTTP::Response->new('200', 'OK', ['Content-Type' => 'text/plain'], '{"hi": "whoops"}');
 $source = Google::Auth::IDTokens::X509CertHttpKeySource->new( {uri => $certs_uri} );
 
@@ -186,6 +199,22 @@ $ua->map_response(qr/\Q$certs_uri\E/, $not_x509_hr);
 
 lives_ok { $source->refresh_keys } 'raises an error when failing to parse x509 from the site';
 
+#
+# Positive x509 test
+#
+
+my $x509_hr  = HTTP::Response->new('200', 'OK', ['Content-Type' => 'text/plain'], $certs_body_json);
+$source = Google::Auth::IDTokens::X509CertHttpKeySource->new( {uri => $certs_uri} );
+$ua->unmap_all();
+$ua->map_response(qr/\Q$certs_uri\E/, $x509_hr);
+
+lives_ok { $keys = $source->refresh_keys } 'key refresh succeeds';
+is( $keys->[0]->{id}, $id1, 'first key matches' );
+is( $keys->[1]->{id}, $id2, 'second key matches' );
+is( $keys->[0]->{algorithm}, 'RS256', 'first algorithm matches' );
+is( $keys->[1]->{algorithm}, 'RS256', 'second algorithm matches' );
+is( $ua->last_http_request_sent->uri, $certs_uri,
+    'uri matches the one expected' );
 
 #diag $obj->{ua};
 
