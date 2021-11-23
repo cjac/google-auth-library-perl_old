@@ -216,6 +216,46 @@ is( $keys->[1]->{algorithm}, 'RS256', 'second algorithm matches' );
 is( $ua->last_http_request_sent->uri, $certs_uri,
     'uri matches the one expected' );
 
+#
+# JWK source tests
+#
+
+my $jwk_uri = 'https://example.com/my-jwk';
+$id1 = 'fb8ca5b7d8d9a5c6c6788071e866c6c40f3fc1f9';
+$id2 = 'LYyP2g';
+
+my $jwk1 = {
+  alg => "RS256",
+        e =>   "AQAB",
+        kid => $id1,
+        kty => "RSA",
+        n => "zK8PHf_6V3G5rU-viUOL1HvAYn7q--dxMoUkt7x1rSWX6fimla-lpoYAKhFTLU" .
+             "ELkRKy_6UDzfybz0P9eItqS2UxVWYpKYmKTQ08HgUBUde4GtO_B0SkSk8iLtGh" .
+             "653UBBjgXmfzdfQEz_DsaWn7BMtuAhY9hpMtJye8LQlwaS8ibQrsC0j0GZM5KX" .
+             "RITHwfx06_T1qqC_MOZRA6iJs-J2HNlgeyFuoQVBTY6pRqGXa-qaVsSG3iU-vq" .
+             "NIciFquIq-xydwxLqZNksRRer5VAsSHf0eD3g2DX-cf6paSy1aM40svO9EfSvG" .
+             "_07MuHafEE44RFvSZZ4ubEN9U7ALSjdw",
+        use => "sig"
+};
+my $jwk2 = {
+        alg => "ES256",
+        crv => "P-256",
+        kid => $id2,
+        kty => "EC",
+        use => "sig",
+        x =>   "SlXFFkJ3JxMsXyXNrqzE3ozl_0913PmNbccLLWfeQFU",
+        y =>   "GLSahrZfBErmMUcHP0MGaeVnJdBwquhrhQ8eP05NfCI"
+    };
+my $bad_type_jwk = {
+    alg => "RS256",
+    kid => "hello",
+    kty => "blah",
+    use => "sig"
+};
+
+my $jwk_body = $coder->encode( { keys => [ $jwk1, $jwk2 ] } );
+my $bad_type_body = $coder->encode( { keys => [ $bad_type_jwk ] } );
+
 #diag $obj->{ua};
 
 #diag Data::Dumper::Dumper( $ua->last_http_response_received );
