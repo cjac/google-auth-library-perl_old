@@ -239,9 +239,7 @@ package Google::Auth::IDTokens::HttpKeySource;
           my( $class, $params ) = @_;
           $class = ref $class if ref $class;
           die "uri is a required parameter$/" .
-            Data::Dumper::Dumper($params) unless (exists $params->{uri} && $params->{uri} ||
-                                                  exists $params->{sources} && $params->{sources});
-
+            Data::Dumper::Dumper($params) unless (exists $params->{uri} && $params->{uri});
 
           my $self = bless { retry_interval   => $params->{retry_interval} || $DEFAULT_RETRY_INTERVAL,
                              allow_refresh_at => DateTime->now,
@@ -395,6 +393,10 @@ package Google::Auth::IDTokens::AggregateKeySource;
         #
         sub new {
           my( $class, $params ) = @_;
+            die "sources is a required parameter$/" .
+                Data::Dumper::Dumper($params)
+              unless exists $params->{sources} && $params->{sources};
+
           $class = ref $class if ref $class;
           my $self = bless { sources => [@{$params->{sources}}] }, $class;
           return $self;
