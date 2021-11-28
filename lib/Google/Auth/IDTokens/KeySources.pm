@@ -238,6 +238,11 @@ package Google::Auth::IDTokens::HttpKeySource;
         sub new {
           my( $class, $params ) = @_;
           $class = ref $class if ref $class;
+          die "uri is a required parameter$/" .
+            Data::Dumper::Dumper($params) unless (exists $params->{uri} && $params->{uri} ||
+                                                  exists $params->{sources} && $params->{sources});
+
+
           my $self = bless { retry_interval   => $params->{retry_interval} || $DEFAULT_RETRY_INTERVAL,
                              allow_refresh_at => DateTime->now,
                              current_keys     => [],
@@ -322,8 +327,14 @@ use base 'Google::Auth::IDTokens::HttpKeySource';
         sub new {
           my( $class, $params ) = @_;
           $class = ref $class if ref $class;
+
+          die "missing required parameters" unless
+            exists $params->{uri} && $params->{uri};
+
+          $params->{retry_interval} //= 30;
+
           my $self = $class->SUPER::new($params);
-          $self->{algorithm} ||= $params->{algorithm} || 'RS256';
+          $self->{algorithm} = $params->{algorithm} || 'RS256';
           return $self;
         }
 
@@ -351,10 +362,25 @@ use base 'Google::Auth::IDTokens::HttpKeySource';
         #     seconds. This is the minimum time between retries of failed key
         #     downloads.
         #
+        sub new {
+          my($self,$params) = @_;
+          my $class = ref $self ? ref $self : $self;
+
+          die "uri is a required parameter$/" .
+            Data::Dumper::Dumper($params) unless
+            exists ( $params->{uri} );
+          $class->SUPER::new($params)
+        }
         sub interpret_json {
           my($self,$data) = @_;
           Google::Auth::IDTokens::KeyInfo->from_jwk_set($data);
         }
+
+        ##
+        # The URI from which to download keys.
+        # @return [Array<KeyInfo>]
+        #
+        sub uri { return $_[0]->SUPER->uri }
 
 package Google::Auth::IDTokens::AggregateKeySource;
       ##

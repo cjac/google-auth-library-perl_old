@@ -40,7 +40,7 @@ use DateTime;
   our $useragent = Test::LWP::UserAgent->new();
 }
 
-plan tests => 25;
+plan tests => 29;
 
 use Google::Auth::IDTokens::KeySources;
 
@@ -196,8 +196,13 @@ $source = Google::Auth::IDTokens::X509CertHttpKeySource->new( {uri => $certs_uri
 
 $ua->unmap_all();
 $ua->map_response(qr/\Q$certs_uri\E/, $not_x509_hr);
+TODO: {
+  local $TODO = 'return code and content do not match for some reason';
+throws_ok { $source->refresh_keys }
+  qr/KeySourceError: Unable to retrieve data from/,
+  'raises an error when failing to parse x509 from the site';
 
-lives_ok { $source->refresh_keys } 'raises an error when failing to parse x509 from the site';
+};
 
 #
 # Positive x509 test
@@ -255,6 +260,53 @@ my $bad_type_jwk = {
 
 my $jwk_body = $coder->encode( { keys => [ $jwk1, $jwk2 ] } );
 my $bad_type_body = $coder->encode( { keys => [ $bad_type_jwk ] } );
+
+#
+# Correct exception thrown when JSON not found
+#
+
+$ua->unmap_all();
+$ua->map_response(qr/\Q$jwk_uri\E/, $not_found_hr);
+my $params = {uri => $jwk_uri};
+
+$source = Google::Auth::IDTokens::JwkHttpKeySource->new( $params );
+throws_ok { $source->refresh_keys; }
+  qr/KeySourceError: Unable to retrieve data from $jwk_uri/,
+  'raises an error when failing to reach the site';
+
+#
+# Correct exception thrown when content is not JSON
+#
+
+$ua->unmap_all();
+$ua->map_response(qr/\Q$jwk_uri\E/, $not_json_hr);
+
+$source = Google::Auth::IDTokens::JwkHttpKeySource->new( $params );
+throws_ok { $source->refresh_keys }
+  qr/KeySourceError: Unable to parse JSON/,
+  'raises an error when failing to parse json from the site, class=' . ref $source;
+is( $ua->last_http_request_sent->uri, $jwk_uri,
+    'uri matches the one expected' );
+
+#
+# Negative JwkHttp test
+#
+
+my $not_jwk_hr  = HTTP::Response->new('200', 'OK', ['Content-Type' => 'text/plain'], '{"hi": "whoops"}');
+$source = Google::Auth::IDTokens::JwkHttpKeySource->new( $params );
+
+$ua->unmap_all();
+$ua->map_response(qr/\Q$jwk_uri\E/, $not_jwk_hr);
+
+throws_ok { $source->refresh_keys }
+qr/Unable to parse JSON: malformed JSON string/,
+  'raises an error when failing to parse jwk from the site';
+
+#
+# Positive JwkHttp test
+#
+
+
 
 #diag $obj->{ua};
 
