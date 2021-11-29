@@ -11,7 +11,7 @@ use Crypt::PK::ECC;
 use Crypt::PK::RSA;
 use Crypt::X509;
 
-# Copyright 2020 Google LLC
+# Copyright 2020,2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -36,6 +36,8 @@ use Crypt::X509;
       #
 
 package Google::Auth::IDTokens::KeyInfo;
+
+use Carp;
 
 my $coder = JSON::XS->new->ascii->pretty->allow_nonref;
 
@@ -111,17 +113,21 @@ my $coder = JSON::XS->new->ascii->pretty->allow_nonref;
           #
         sub from_jwk_set {
           my( $self, $jwk_set ) = @_;
+          confess 'jwk_set is a required argument' unless $jwk_set;
+          confess "No keys found in jwk set" unless( exists $jwk_set->{keys} &&
+                                                 ref $jwk_set->{keys} eq 'ARRAY' );
           $jwk_set = ensure_json_parsed( $jwk_set );
-          die "No keys found in jwk set" unless( exists $jwks->{keys} &&
-                                                 ref $jwks->{keys} eq 'ARRAY' );
           my $jwks = [ map { from_jwk( $_ ) } @{$jwk_set->{keys}} ];
         }
 
         sub ensure_json_parsed {
           my( $self, $input ) = @_;
+          confess 'input is a required argument' unless $input;
           return $input if ref $input;
           my $decoded = eval { $coder->decode ($input) };
-          die "Unable to parse JSON: $@" if $@;
+
+          confess ("Unable to parse JSON: $@$/" .
+                   "input: $input" ) if $@;
           return $decoded
         }
 
@@ -349,6 +355,7 @@ use base 'Google::Auth::IDTokens::HttpKeySource';
 
 package Google::Auth::IDTokens::JwkHttpKeySource;
 use base 'Google::Auth::IDTokens::HttpKeySource';
+use Carp;
       ##
       # A key source that downloads a JWK set.
       #
@@ -371,6 +378,7 @@ use base 'Google::Auth::IDTokens::HttpKeySource';
         }
         sub interpret_json {
           my($self,$data) = @_;
+          confess 'data is a required argument' unless $data;
           Google::Auth::IDTokens::KeyInfo->from_jwk_set($data);
         }
 

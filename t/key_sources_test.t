@@ -40,7 +40,7 @@ use DateTime;
   our $useragent = Test::LWP::UserAgent->new();
 }
 
-plan tests => 29;
+plan tests => 30;
 
 use Google::Auth::IDTokens::KeySources;
 
@@ -292,7 +292,7 @@ is( $ua->last_http_request_sent->uri, $jwk_uri,
 # Negative JwkHttp test
 #
 
-my $not_jwk_hr  = HTTP::Response->new('200', 'OK', ['Content-Type' => 'text/plain'], '{"hi": "whoops"}');
+my $not_jwk_hr  = HTTP::Response->new('200', 'OK', ['Content-Type' => 'text/plain'], 'whoops');
 $source = Google::Auth::IDTokens::JwkHttpKeySource->new( $params );
 
 $ua->unmap_all();
@@ -302,11 +302,20 @@ throws_ok { $source->refresh_keys }
 qr/Unable to parse JSON: malformed JSON string/,
   'raises an error when failing to parse jwk from the site';
 
+
+my $malformed_jwk_hr  = HTTP::Response->new('200', 'OK', ['Content-Type' => 'text/plain'], '{"hi": "whoops"}');
+$source = Google::Auth::IDTokens::JwkHttpKeySource->new( $params );
+
+$ua->unmap_all();
+$ua->map_response(qr/\Q$jwk_uri\E/, $malformed_jwk_hr);
+
+throws_ok { $source->refresh_keys }
+qr/No keys found in jwk set/,
+  "raises an error when the json structure is malformed"
+
 #
 # Positive JwkHttp test
 #
-
-
 
 #diag $obj->{ua};
 
