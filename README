@@ -1,7 +1,8 @@
-tagoogle-auth-library-perl
+Google Auth Library for Perl
 
-This is a Perl implementation of the Google auth library.  Based in
-part on the Ruby implementation.
+This is a Perl implementation of the Google Auth Library, based in
+part on the Ruby implementation.  This library is not directly
+supported by Google.
 
 https://github.com/googleapis/google-auth-library-ruby/
 
