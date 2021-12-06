@@ -86,7 +86,7 @@ my $coder = JSON::XS->new->ascii->pretty->allow_nonref;
           #
         sub from_jwk {
           my( $self, $jwk ) = @_;
-          $jwk = ensure_json_parsed( $jwk );
+          $jwk = __PACKAGE__->ensure_json_parsed( $jwk );
           if( $jwk->{kty} eq 'RSA' ){
             $self->{key} = $self->extract_rsa_key( $jwk );
           }elsif( $jwk->{kty} eq 'EC' ){
@@ -94,7 +94,7 @@ my $coder = JSON::XS->new->ascii->pretty->allow_nonref;
           }elsif( !defined $jwk->{kty}  ){
             die "Key type not found";
           }else{
-            die "Cannot use key type [$jwk->{kty}]"
+            die "Cannot use key type $jwk->{kty}"
           }
           $self->{id} = $jwk->{kid};
           $self->{key} = $pub_key;
@@ -116,8 +116,8 @@ my $coder = JSON::XS->new->ascii->pretty->allow_nonref;
           confess 'jwk_set is a required argument' unless $jwk_set;
           confess "No keys found in jwk set" unless( exists $jwk_set->{keys} &&
                                                  ref $jwk_set->{keys} eq 'ARRAY' );
-          $jwk_set = ensure_json_parsed( $jwk_set );
-          my $jwks = [ map { from_jwk( $_ ) } @{$jwk_set->{keys}} ];
+          $jwk_set = $self->ensure_json_parsed( $jwk_set );
+          my $jwks = [ map { $self->from_jwk( $_ ) } @{$jwk_set->{keys}} ];
         }
 
         sub ensure_json_parsed {
@@ -379,7 +379,7 @@ use Carp;
         sub interpret_json {
           my($self,$data) = @_;
           confess 'data is a required argument' unless $data;
-          Google::Auth::IDTokens::KeyInfo->from_jwk_set($data);
+          return Google::Auth::IDTokens::KeyInfo->from_jwk_set($data);
         }
 
         ##
