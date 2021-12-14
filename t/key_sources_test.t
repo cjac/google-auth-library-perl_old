@@ -323,10 +323,36 @@ throws_ok { $source->refresh_keys }
 qr/Cannot use key type blah/,
   'raises an error when an unrecognized key type is encountered';
   
-
 #
 # Positive JwkHttp test
 #
+
+my $correct_hr = HTTP::Response->new('200', 'OK', ['Content-Type' => 'text/plain'], $jwk_body );
+$source = Google::Auth::IDTokens::JwkHttpKeySource->new( $params );
+
+$ua->unmap_all();
+$ua->map_response(qr/\Q$jwk_uri\E/, $correct_hr);
+
+lives_ok { $keys = $source->refresh_keys }
+  'refresh succeeds';
+
+is( ref $keys, 'ARRAY', 'an array of keys is returned');
+
+is( scalar @{$keys}, 2, 'two keys in the results');
+
+is( ref $keys->[0], 'Google::Auth::IDTokens::KeyInfo', 'first returned key is a blessed hash');
+is( ref $keys->[1], 'Google::Auth::IDTokens::KeyInfo', 'second returned key is a blessed hash');
+
+is( $keys->[0]->{id}, $id1, 'first key matches' );
+is( $keys->[1]->{id}, $id2, 'second key matches' );
+is( ref $keys->[0]->{key}, 'Crypt::PK::RSA', 'key type for first key is correct');
+is( ref $keys->[1]->{key}, 'Crypt::PK::ECC', 'key type for second key is correct');
+is( $keys->[0]->{algorithm}, 'RS256', 'first algorithm matches' );
+is( $keys->[1]->{algorithm}, 'ES256', 'second algorithm matches' );
+is( $ua->last_http_request_sent->uri, $certs_uri,
+    'uri matches the one expected' );
+
+
 
 #diag $obj->{ua};
 

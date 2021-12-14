@@ -86,7 +86,8 @@ my $coder = JSON::XS->new->ascii->pretty->allow_nonref;
           #
         sub from_jwk {
           my( $self, $jwk ) = @_;
-          $jwk = __PACKAGE__->ensure_json_parsed( $jwk );
+          $jwk = $self->ensure_json_parsed( $jwk );
+
           if( $jwk->{kty} eq 'RSA' ){
             $self->{key} = $self->extract_rsa_key( $jwk );
           }elsif( $jwk->{kty} eq 'EC' ){
@@ -97,7 +98,6 @@ my $coder = JSON::XS->new->ascii->pretty->allow_nonref;
             die "Cannot use key type $jwk->{kty}"
           }
           $self->{id} = $jwk->{kid};
-          $self->{key} = $pub_key;
           $self->{algorithm} = $jwk->{alg};
 
           return $self;
@@ -114,10 +114,12 @@ my $coder = JSON::XS->new->ascii->pretty->allow_nonref;
         sub from_jwk_set {
           my( $self, $jwk_set ) = @_;
           confess 'jwk_set is a required argument' unless $jwk_set;
+          $jwk_set = $self->ensure_json_parsed( $jwk_set );
           confess "No keys found in jwk set" unless( exists $jwk_set->{keys} &&
                                                  ref $jwk_set->{keys} eq 'ARRAY' );
-          $jwk_set = $self->ensure_json_parsed( $jwk_set );
           my $jwks = [ map { $self->from_jwk( $_ ) } @{$jwk_set->{keys}} ];
+
+          return $jwks;
         }
 
         sub ensure_json_parsed {
@@ -214,7 +216,7 @@ package Google::Auth::IDTokens::StaticKeySource;
           # @param jwk_set [Hash,String] The JWK Set specification.
           # @return [StaticKeySource]
           #
-        sub from_jwk {
+        sub from_jwk_set {
           my($self,$jwk_set) = @_;
           return Google::Auth::IDTokens::KeyInfo->new()->from_jwk_set( $jwk_set );
         }
