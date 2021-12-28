@@ -12,7 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 package Google::Auth::CloudSDK;
+
+use strict;
+use warnings;
 
 use JSON::XS;
 use Google::Auth::EnvironmentVars;
