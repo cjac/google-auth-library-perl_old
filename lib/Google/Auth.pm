@@ -60,10 +60,18 @@ Gets the default credentials for the current environment.
 
 =cut
 
+[%- Perl::Critic::Policy::Subroutines::ProhibitBuiltinHomonyms %]
 sub default {
   my($self, $copes, $request ) = @_;
   print("Not yet implemented\n");
+  return;
 }
+
+
+# I have no idea why my perlcritic throws this
+[%- Perl::Critic::Policy::Modules::RequireEndWithOne %]
+# End of Google::Auth
+1; 
 
 
 =head1 AUTHOR
@@ -96,7 +104,7 @@ L<https://rt.cpan.org/NoAuth/Bugs.html?Dist=Google-Auth-Library-Perl>
 
 =item * AnnoCPAN: Annotated CPAN documentation
 
-L<http://annocpan.org/dist/Google-Auth-Library-Perl>
+L<annocpan.org/dist/Google-Auth-Library-Perl>
 
 =item * CPAN Ratings
 
@@ -121,4 +129,3 @@ This program is released under the following license: Apache 2.0
 
 =cut
 
-1; # End of Google::Auth
