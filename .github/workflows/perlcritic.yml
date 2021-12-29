@@ -1,0 +1,19 @@
+---
+name: "gugod-perlcritic"
+description: "perlcritic by gugod"
+author: "Kang-min Liu <gugod@gugod.org>"
+branding:
+  icon: "check-circle"
+  color: "green"
+inputs:
+  paths:
+    description: "Paths (directories or files) lint"
+    required: false
+    default: .
+  options:
+    description: "Options to perlcritic"
+    required: false
+    default: "--quiet -p .perlcriticrc"
+runs:
+  using: 'docker'
+  image: 'docker://ghcr.io/gugod/actions-perlcritic:latest'
