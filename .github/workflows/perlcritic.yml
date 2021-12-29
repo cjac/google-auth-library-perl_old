@@ -1,6 +1,7 @@
 on: [push, pull_request]
 name: Linux
-fail-fast: false
+strategy:
+  fail-fast: false
 
 jobs:
   build:
