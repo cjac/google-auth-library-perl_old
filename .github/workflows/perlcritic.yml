@@ -26,7 +26,7 @@ jobs:
             perl -v
             cat cpanfile
             cpanm --force --quiet --notest Moo
-            cpanm --force --verbose DateTime
+            cpanm --force --verbose --notest DateTime
             cpanm --force --quiet --notest --installdeps .
             perl Makefile.PL
             make test
