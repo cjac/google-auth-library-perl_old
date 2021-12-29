@@ -2,7 +2,7 @@
   uses: perl-actions/install-with-cpanm@v1
   with:
      cpanfile: 'cpanfile'
-     sudo: false
+#     sudo: false
 jobs:
   perl_tester:
     runs-on: ubuntu-latest
