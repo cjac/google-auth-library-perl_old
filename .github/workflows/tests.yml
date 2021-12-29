@@ -25,8 +25,9 @@ jobs:
       - uses: actions/checkout@v2
       - name: uses install-with-cpanm
         uses: perl-actions/install-with-cpanm@v1
-        with:
-          cpanfile: "cpanfile"
-          sudo: false
+        #with:
+        #  cpanfile: "cpanfile"
+        #  sudo: false
+      - run: cpanm --force --quiet --notest --installdeps .
       - run: perl Makefile.PL
       - run: make test

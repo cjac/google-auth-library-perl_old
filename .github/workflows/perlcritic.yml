@@ -24,6 +24,6 @@ jobs:
           PERL_USE_UNSAFE_INC: 0
         run: |
             perl -v
-            cpanm --quiet --notest --installdeps .
+            cpanm --force --quiet --notest --installdeps .
             perl Makefile.PL
             make test
