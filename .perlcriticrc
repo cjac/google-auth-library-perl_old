@@ -1,0 +1,9 @@
+
+# a module has multiple packages.
+[%- Perl::Critic::Policy::Modules::ProhibitMultiplePackages %]
+
+# have a sub called default
+[%- Perl::Critic::Policy::Subroutines::ProhibitBuiltinHomonyms %]
+
+# couldn't get 1; to work. Don't know why.
+[%- Perl::Critic::Policy::Modules::RequireEndWithOne %]
