@@ -25,7 +25,7 @@ jobs:
         run: |
             perl -v
             cat cpanfile
-            cpanm Moo
+            cpanm --force --quiet --notest Moo
             cpanm --force --quiet --notest --installdeps .
             perl Makefile.PL
             make test
