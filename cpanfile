@@ -6,7 +6,6 @@ requires 'DateTime ';
 requires 'Mutex';
 requires 'Throwable::Error';
 requires 'Moo';
-:
 
 requires 'Test::Exception';
 requires 'Test::LWP::UserAgent';
