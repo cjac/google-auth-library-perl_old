@@ -1,14 +1,13 @@
 on: [push, pull_request]
 name: Linux
-strategy:
-  fail-fast: false
 
 jobs:
   build:
     runs-on: 'ubuntu-latest'
     strategy:
+      fail-fast: false   strategy:
       matrix:
-        perl: [ '5.32', '5.30', '5.26', '5.22', '5.16', '5.8' ]
+        perl: [ '5.32', '5.30', '5.26', '5.22', '5.16' ]
     name: Perl ${{ matrix.perl }}
     steps:
       - name: check out code
