@@ -23,8 +23,6 @@ jobs:
         env:
           PERL_USE_UNSAFE_INC: 0
         run: |
-            perl -v
-            cat cpanfile
             cpanm --force --quiet --notest DateTime
             cpanm --force --quiet --notest --installdeps .
             perl Makefile.PL
