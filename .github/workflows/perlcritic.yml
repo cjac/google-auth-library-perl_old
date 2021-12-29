@@ -1,22 +1,27 @@
----
-name: "gugod-perlcritic"
-description: "perlcritic by gugod"
-author: "Kang-min Liu <gugod@gugod.org>"
-branding:
-  icon: "check-circle"
-  color: "green"
-inputs:
-  paths:
-    description: "Paths (directories or files) lint"
-    required: false
-    default: .
-  options:
-    description: "Options to perlcritic"
-    required: false
-    default: "--quiet -p .perlcriticrc"
-runs:
-  using: 'docker'
-  image: 'docker://ghcr.io/gugod/actions-perlcritic:latest'
-on:
-  push:
-  workflow_dispatch:
+on: [push, pull_request]
+name: Linux
+
+jobs:
+  build:
+    runs-on: 'ubuntu-latest'
+    strategy:
+      matrix:
+        perl: [ '5.32', '5.30', '5.26', '5.22', '5.16', '5.8' ]
+    name: Perl ${{ matrix.perl }}
+    steps:
+      - name: check out code
+        uses: actions/checkout@v2
+
+      - name: switch to perl ${{ matrix.perl }}
+        uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: ${{ matrix.perl }}
+
+      - name: run tests
+        env:
+          PERL_USE_UNSAFE_INC: 0
+        run: |
+            perl -v
+            cpanm --quiet --notest --installdeps .
+            perl Makefile.PL
+            make test
