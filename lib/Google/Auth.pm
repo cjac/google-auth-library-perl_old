@@ -60,7 +60,7 @@ Gets the default credentials for the current environment.
 
 =cut
 
-[%- Perl::Critic::Policy::Subroutines::ProhibitBuiltinHomonyms %]
+#[%- Perl::Critic::Policy::Subroutines::ProhibitBuiltinHomonyms %]
 sub default {
   my($self, $copes, $request ) = @_;
   print("Not yet implemented\n");
@@ -69,7 +69,7 @@ sub default {
 
 
 # I have no idea why my perlcritic throws this
-[%- Perl::Critic::Policy::Modules::RequireEndWithOne %]
+#[%- Perl::Critic::Policy::Modules::RequireEndWithOne %]
 # End of Google::Auth
 1; 
 

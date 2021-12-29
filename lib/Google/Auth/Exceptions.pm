@@ -33,25 +33,25 @@ our $VERSION = '0.01';
 
 # Base class for all google.auth errors
 
-[%- Perl::Critic::Policy::Modules::ProhibitMultiplePackages %]
+#[%- Perl::Critic::Policy::Modules::ProhibitMultiplePackages %]
 package Google::Auth::Error;
 use Moo;
 extends 'Throwable::Error';
 
 # Used to indicate an error occurred during an HTTP request
-[%- Perl::Critic::Policy::Modules::ProhibitMultiplePackages %]
+#[%- Perl::Critic::Policy::Modules::ProhibitMultiplePackages %]
 package Google::Auth::TransportError;
 use Moo;
 extends 'Google::Auth::Error';
 
 # Used to indicate failure to refresh the credentials' access token
-[%- Perl::Critic::Policy::Modules::ProhibitMultiplePackages %]
+#[%- Perl::Critic::Policy::Modules::ProhibitMultiplePackages %]
 package Google::Auth::RefreshError;
 use Moo;
 extends 'Google::Auth::Error';
 
 # Used to indicate failure to acquire default credentials
-[%- Perl::Critic::Policy::Modules::ProhibitMultiplePackages %]
+#[%- Perl::Critic::Policy::Modules::ProhibitMultiplePackages %]
 package Google::Auth::DefaultCredentialsError;
 use Moo;
 extends 'Google::Auth::Error';
