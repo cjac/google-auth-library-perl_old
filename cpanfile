@@ -6,6 +6,8 @@ requires 'Crypt::X509';
 requires 'Crypt::OpenSSL::CA';
 requires 'Mutex';
 requires 'Throwable::Error';
+requires 'Perl::Critic';
+
 
 requires 'Test::Exception';
 requires 'Test::LWP::UserAgent';
