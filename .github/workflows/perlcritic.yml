@@ -27,3 +27,8 @@ jobs:
             cpanm --force --quiet --notest --installdeps .
             perl Makefile.PL
             make test
+
+      - name: perlcritic
+        run:
+            perlcritic lib
+
