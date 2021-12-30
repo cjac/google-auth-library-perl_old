@@ -29,6 +29,5 @@ jobs:
             make test
 
       - name: perlcritic
-        run:
-            perlcritic lib
+        run: perlcritic lib
 
