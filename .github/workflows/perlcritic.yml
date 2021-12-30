@@ -23,9 +23,9 @@ jobs:
         env:
           PERL_USE_UNSAFE_INC: 0
         run: |
-            perlcritic lib
             cpanm --force --quiet --notest DateTime
             cpanm --force --quiet --notest --installdeps .
+            perlcritic lib
             perl Makefile.PL
             make test
 
