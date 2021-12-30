@@ -1,6 +1,10 @@
 # frozen_string_literal: true
 
 package Google::Auth::IDTokens::KeySources;
+
+use strict;
+use warnings;
+
 use URI;
 use DateTime;
 use JSON::XS;
