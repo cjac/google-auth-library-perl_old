@@ -7,6 +7,7 @@ requires 'Crypt::OpenSSL::CA';
 requires 'Mutex';
 requires 'Throwable::Error';
 requires 'Perl::Critic';
+requires 'JSON::PP';
 
 
 requires 'Test::Exception';
