@@ -435,7 +435,7 @@ package Google::Auth::IDTokens::AggregateKeySource;
         # @return [Array<KeyInfo>]
         # @raise [KeySourceError] if key retrieval failed.
         #
-        sub current_keys {
+        sub refresh_keys {
 	  my($self) = @_;
           my @current_keys_set;
           foreach my $source ( @{$self->{sources}} ){
