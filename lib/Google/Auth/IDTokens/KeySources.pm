@@ -28,6 +28,8 @@ use Crypt::PK::ECC;
 use Crypt::PK::RSA;
 use Crypt::X509;
 
+our $VERSION = 0.01;
+
 1;
 
       ##
@@ -294,7 +296,7 @@ package Google::Auth::IDTokens::HttpKeySource;
             print STDERR 'cache hit',$/ if $ENV{TESTING};
             return @{$self->{current_keys}};
           }
-          print STDERR 'cache miss',$/ if $ENV{TESTING};
+          print STDERR 'cache miss',$/ if $ENV{TESTING} && $ENV{VERBOSE};
 
           $self->{allow_refresh_at} = DateTime->now()->add( seconds => $self->{retry_interval} );
 
