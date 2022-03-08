@@ -15,6 +15,7 @@
 package Google::Auth::WebUserAuthorizer;
 
 use JSON::XS;
+use strict;
 
 # What follows is an in-progress translation to perl of googleapis/google-auth-library-ruby/lib/googleauth/web_user_authorizer.rb
 
