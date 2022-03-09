@@ -1,6 +1,10 @@
 # syntax=docker/dockerfile:1
 FROM debian:stable
 
+#LICENSE AND COPYRIGHT
+#Copyright (C) 2020,2021,2023 Google, LLC
+#This program is released under the following license: Apache 2.0
+
 # Install dependencies and then clean up the image
 RUN apt-get update && \
     apt-get install -y \
