@@ -17,6 +17,8 @@ package Google::Auth::WebUserAuthorizer;
 use JSON::XS;
 use strict;
 
+my $coder = JSON::XS->new->ascii->pretty->allow_nonref;
+
 # What follows is an in-progress translation to perl of googleapis/google-auth-library-ruby/lib/googleauth/web_user_authorizer.rb
 
 #use Google::Auth::Signet::OAuth2;
@@ -93,6 +95,10 @@ use strict;
       #  Current request
 
 sub handle_auth_callback_deferred {
+    my($self,$request) = @_;
+    my($callback_state,$redirect_uri) = extract_callback_state($request);
+    $request->{session}->{$self->{CALLBACK_STATE_KEY}} = $coder->encode( $callback_state );
+    $redirect_uri;
 
 =pod
       def self.handle_auth_callback_deferred request
