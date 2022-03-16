@@ -28,7 +28,7 @@ use Crypt::PK::ECC;
 use Crypt::PK::RSA;
 use Crypt::X509;
 
-our $VERSION = 0.01;
+our $VERSION = 0.02;
 
 1;
 
