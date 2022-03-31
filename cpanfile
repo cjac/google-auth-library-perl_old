@@ -8,6 +8,7 @@ requires 'Mutex';
 requires 'Throwable::Error';
 requires 'Perl::Critic';
 requires 'JSON::PP';
+requires 'LWP::Authen::OAuth2';
 
 
 requires 'Test::Exception';
