@@ -20,13 +20,13 @@ To build this module, run the following commands:
           Throwable::Error \
           Test::Exception \
           Test::LWP::UserAgent \
-	  Test::More \
-	  JSON::XS \
+          Test::More \
+          JSON::XS \
           Mutex
-	perl Makefile.PL
-	make
-	make test
-	make install
+        perl Makefile.PL
+        make
+        make test
+        make install
 
 SUPPORT AND DOCUMENTATION
 

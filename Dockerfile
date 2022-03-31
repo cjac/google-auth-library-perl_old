@@ -32,7 +32,7 @@ RUN apt-get update && \
             libtest-warn-perl \
             libthrowable-perl \
             libwww-perl \
-	    cpanminus && \
+    cpanminus && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/{*InRelease,*_Packages,Contents-*.lz4,Translation-en*,Contents-*.diff_Index,Sources*}
 

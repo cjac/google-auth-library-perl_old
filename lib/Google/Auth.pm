@@ -71,7 +71,7 @@ sub default {
 # I have no idea why my perlcritic throws this
 #[%- Perl::Critic::Policy::Modules::RequireEndWithOne %]
 # End of Google::Auth
-1; 
+1;
 
 
 =head1 AUTHOR

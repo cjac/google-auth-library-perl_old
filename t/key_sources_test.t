@@ -324,7 +324,7 @@ $ua->map_response(qr/\Q$jwk_uri\E/, $unrecognized_kt_hr);
 throws_ok { $source->refresh_keys }
 qr/Cannot use key type blah/,
   'raises an error when an unrecognized key type is encountered';
-  
+
 #
 # Positive JwkHttp test
 #

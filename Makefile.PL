@@ -40,8 +40,8 @@ WriteMakefile(
         'Test::LWP::UserAgent' => '0',
         'Test::More' => '0',
         'JSON::XS' => '0',
-	'Mutex' => '0',
-	},
+        'Mutex' => '0',
+    },
     PREREQ_PM => {
         #'ABC'              => '1.6',
         #'Foo::Bar::Module' => '5.0401',
