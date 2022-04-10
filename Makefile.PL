@@ -39,6 +39,8 @@ WriteMakefile(
         'Test::Exception' => '0',
         'Test::LWP::UserAgent' => '0',
         'Test::More' => '0',
+	'Test::Perl::Critic' => '0',
+	'Throwable::Error' => '0',
         'JSON::XS' => '0',
 	'Mutex' => '0',
 	},
