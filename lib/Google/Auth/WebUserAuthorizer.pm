@@ -27,7 +27,6 @@ my $coder = JSON::XS->new->ascii->pretty->allow_nonref;
 #use Google::Auth::Signet::UserAuthorizer;
 #use Google::Auth::Signet::UserRefreshCredentials;
 
-
 =pod
 
     # Varation on {Google::Auth::UserAuthorizer} adapted for Plack based
@@ -80,26 +79,24 @@ my $coder = JSON::XS->new->ascii->pretty->allow_nonref;
 
 =cut
 
+# Handle the result of the oauth callback. This version defers the
+# exchange of the code by temporarily stashing the results in the user's
+# session. This allows apps to use the generic
+# {Google::Auth::WebUserAuthorizer::CallbackApp} handler for the callback
+# without any additional customization.
+#
+# Apps that wish to handle the callback directly should use
+# {#handle_auth_callback} instead.
+#
+# @param [Rack::Request] request
+#  Current request
 
-
-
-
-      # Handle the result of the oauth callback. This version defers the
-      # exchange of the code by temporarily stashing the results in the user's
-      # session. This allows apps to use the generic
-      # {Google::Auth::WebUserAuthorizer::CallbackApp} handler for the callback
-      # without any additional customization.
-      #
-      # Apps that wish to handle the callback directly should use
-      # {#handle_auth_callback} instead.
-      #
-      # @param [Rack::Request] request
-      #  Current request
-
-sub handle_auth_callback_deferred {
-    my($self,$request) = @_;
-    my($callback_state,$redirect_uri) = extract_callback_state($request);
-    $request->{session}->{$self->{CALLBACK_STATE_KEY}} = $coder->encode( $callback_state );
+sub handle_auth_callback_deferred
+{
+    my ( $self,           $request )      = @_;
+    my ( $callback_state, $redirect_uri ) = extract_callback_state($request);
+    $request->{session}->{ $self->{CALLBACK_STATE_KEY} } =
+        $coder->encode($callback_state);
     $redirect_uri;
 
 =pod
@@ -113,19 +110,20 @@ sub handle_auth_callback_deferred {
 
 }
 
-      # Initialize the authorizer
-      #
-      # @param [Google::Auth::ClientID] client_id
-      #  Configured ID & secret for this application
-      # @param [String, Array<String>] scope
-      #  Authorization scope to request
-      # @param [Google::Auth::Stores::TokenStore] token_store
-      #  Backing storage for persisting user credentials
-      # @param [String] callback_uri
-      #  URL (either absolute or relative) of the auth callback. Defaults
-      #  to '/oauth2callback'
+# Initialize the authorizer
+#
+# @param [Google::Auth::ClientID] client_id
+#  Configured ID & secret for this application
+# @param [String, Array<String>] scope
+#  Authorization scope to request
+# @param [Google::Auth::Stores::TokenStore] token_store
+#  Backing storage for persisting user credentials
+# @param [String] callback_uri
+#  URL (either absolute or relative) of the auth callback. Defaults
+#  to '/oauth2callback'
 
-sub initialize {
+sub initialize
+{
 
 =pod
       def initialize client_id, scope, token_store, callback_uri = nil
@@ -136,17 +134,18 @@ sub initialize {
 
 }
 
-      # Handle the result of the oauth callback. Exchanges the authorization
-      # code from the request and persists to storage.
-      #
-      # @param [String] user_id
-      #  Unique ID of the user for loading/storing credentials.
-      # @param [Rack::Request] request
-      #  Current request
-      # @return (Google::Auth::UserRefreshCredentials, String)
-      #  credentials & next URL to redirect to
+# Handle the result of the oauth callback. Exchanges the authorization
+# code from the request and persists to storage.
+#
+# @param [String] user_id
+#  Unique ID of the user for loading/storing credentials.
+# @param [Rack::Request] request
+#  Current request
+# @return (Google::Auth::UserRefreshCredentials, String)
+#  credentials & next URL to redirect to
 
-sub handle_auth_callback {
+sub handle_auth_callback
+{
 
 =pod
       def handle_auth_callback user_id, request
@@ -167,25 +166,26 @@ sub handle_auth_callback {
 
 }
 
-      # Build the URL for requesting authorization.
-      #
-      # @param [String] login_hint
-      #  Login hint if need to authorize a specific account. Should be a
-      #  user's email address or unique profile ID.
-      # @param [Rack::Request] request
-      #  Current request
-      # @param [String] redirect_to
-      #  Optional URL to proceed to after authorization complete. Defaults to
-      #  the current URL.
-      # @param [String, Array<String>] scope
-      #  Authorization scope to request. Overrides the instance scopes if
-      #  not nil.
-      # @param [Hash] state
-      #  Optional key-values to be returned to the oauth callback.
-      # @return [String]
-      #  Authorization url
+# Build the URL for requesting authorization.
+#
+# @param [String] login_hint
+#  Login hint if need to authorize a specific account. Should be a
+#  user's email address or unique profile ID.
+# @param [Rack::Request] request
+#  Current request
+# @param [String] redirect_to
+#  Optional URL to proceed to after authorization complete. Defaults to
+#  the current URL.
+# @param [String, Array<String>] scope
+#  Authorization scope to request. Overrides the instance scopes if
+#  not nil.
+# @param [Hash] state
+#  Optional key-values to be returned to the oauth callback.
+# @return [String]
+#  Authorization url
 
-sub get_authorization_url {
+sub get_authorization_url
+{
 
 =pod
 
@@ -211,23 +211,24 @@ sub get_authorization_url {
 
 }
 
-      # Fetch stored credentials for the user from the given request session.
-      #
-      # @param [String] user_id
-      #  Unique ID of the user for loading/storing credentials.
-      # @param [Rack::Request] request
-      #  Current request. Optional. If omitted, this will attempt to fall back
-      #  on the base class behavior of reading from the token store.
-      # @param [Array<String>, String] scope
-      #  If specified, only returns credentials that have all the \
-      #  requested scopes
-      # @return [Google::Auth::UserRefreshCredentials]
-      #  Stored credentials, nil if none present
-      # @raise [Signet::AuthorizationError]
-      #  May raise an error if an authorization code is present in the session
-      #  and exchange of the code fails
+# Fetch stored credentials for the user from the given request session.
+#
+# @param [String] user_id
+#  Unique ID of the user for loading/storing credentials.
+# @param [Rack::Request] request
+#  Current request. Optional. If omitted, this will attempt to fall back
+#  on the base class behavior of reading from the token store.
+# @param [Array<String>, String] scope
+#  If specified, only returns credentials that have all the \
+#  requested scopes
+# @return [Google::Auth::UserRefreshCredentials]
+#  Stored credentials, nil if none present
+# @raise [Signet::AuthorizationError]
+#  May raise an error if an authorization code is present in the session
+#  and exchange of the code fails
 
-sub get_credentials {
+sub get_credentials
+{
 
 =pod
 
@@ -253,7 +254,8 @@ sub get_credentials {
 
 }
 
-sub extract_callback_state {
+sub extract_callback_state
+{
 
 =pod
 
@@ -273,18 +275,19 @@ sub extract_callback_state {
 
 }
 
-      # Verifies the results of an authorization callback
-      #
-      # @param [Hash] state
-      #  Callback state
-      # @option state [String] AUTH_CODE_KEY
-      #  The authorization code
-      # @option state [String] ERROR_CODE_KEY
-      #  Error message if failed
-      # @param [Rack::Request] request
-      #  Current request
+# Verifies the results of an authorization callback
+#
+# @param [Hash] state
+#  Callback state
+# @option state [String] AUTH_CODE_KEY
+#  The authorization code
+# @option state [String] ERROR_CODE_KEY
+#  Error message if failed
+# @param [Rack::Request] request
+#  Current request
 
-sub validate_callback_state {
+sub validate_callback_state
+{
 
 =pod
 

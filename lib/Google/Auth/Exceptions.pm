@@ -30,7 +30,6 @@ Version 0.02
 
 our $VERSION = '0.02';
 
-
 # Base class for all google.auth errors
 
 #[%- Perl::Critic::Policy::Modules::ProhibitMultiplePackages %]
@@ -55,7 +54,6 @@ extends 'Google::Auth::Error';
 package Google::Auth::DefaultCredentialsError;
 use Moo;
 extends 'Google::Auth::Error';
-
 
 =head1 AUTHOR
 
@@ -112,4 +110,4 @@ This program is released under the following license: Apache 2.0
 
 =cut
 
-1; # End of Google::Auth::Exceptions
+1;    # End of Google::Auth::Exceptions

@@ -35,7 +35,6 @@ Version 0.02
 
 our $VERSION = '0.02';
 
-
 =head1 SYNOPSIS
 
 Quick summary of what the module does.
@@ -61,18 +60,17 @@ Gets the default credentials for the current environment.
 =cut
 
 #[%- Perl::Critic::Policy::Subroutines::ProhibitBuiltinHomonyms %]
-sub default {
-  my($self, $copes, $request ) = @_;
-  print("Not yet implemented\n");
-  return;
+sub default
+{
+    my ( $self, $copes, $request ) = @_;
+    print("Not yet implemented\n");
+    return;
 }
-
 
 # I have no idea why my perlcritic throws this
 #[%- Perl::Critic::Policy::Modules::RequireEndWithOne %]
 # End of Google::Auth
-1; 
-
+1;
 
 =head1 AUTHOR
 
