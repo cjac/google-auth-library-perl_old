@@ -33,30 +33,31 @@ use DateTime;
 
 #require "helper"
 
-diag( "Testing Google::Auth::IDTokens::Verifier $Google::Auth::IDTokens::Verifier::VERSION, Perl $], $^X" );
+diag(
+"Testing Google::Auth::IDTokens::Verifier $Google::Auth::IDTokens::Verifier::VERSION, Perl $], $^X"
+);
 
-
-BEGIN {
-  plan tests => 1;
-  $ENV{TESTING} = 1;
-  use_ok( 'Google::Auth::IDTokens::Verifier' ) || print "Bail out!\n";
+BEGIN
+{
+    plan tests => 1;
+    $ENV{TESTING} = 1;
+    use_ok('Google::Auth::IDTokens::Verifier') || print "Bail out!\n";
 }
 
-
 my $oidc_token =
-      "eyJhbGciOiJSUzI1NiIsImtpZCI6IjQ5MjcxMGE3ZmNkYjE1Mzk2MGNlMDFmNzYwNTIwY" .
-      "TMyYzg0NTVkZmYiLCJ0eXAiOiJKV1QifQ.eyJhdWQiOiJodHRwOi8vZXhhbXBsZS5jb20" .
-      "iLCJhenAiOiI1NDIzMzkzNTc2MzgtY3IwZHNlcnIyZXZnN3N2MW1lZ2hxZXU3MDMyNzRm" .
-      "M2hAZGV2ZWxvcGVyLmdzZXJ2aWNlYWNjb3VudC5jb20iLCJlbWFpbCI6IjU0MjMzOTM1N" .
-      "zYzOC1jcjBkc2VycjJldmc3c3YxbWVnaHFldTcwMzI3NGYzaEBkZXZlbG9wZXIuZ3Nlcn" .
-      "ZpY2VhY2NvdW50LmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJleHAiOjE1OTEzNDI" .
-      "3NzYsImlhdCI6MTU5MTMzOTE3NiwiaXNzIjoiaHR0cHM6Ly9hY2NvdW50cy5nb29nbGUu" .
-      "Y29tIiwic3ViIjoiMTA0MzQxNDczMTMxODI1OTU3NjAzIn0.GGDE_5HoLacyqdufdxnAC" .
-      "rXxYySKQYAzSQ5qfGjSUriuO3uLm2-rwSPFfLzzBeflEHdVX7XRFFszpxKajuZklF4dXd" .
-      "0evB1u5i3QeCJ8MSZKKx6qus_ETJv4rtuPNEuyhaRcShB7BwI8RY0IZ4_EDrhYqYInrO2" .
-      "wQyJGYvc41JcmoKzRoNnEVydN0Qppt9bqevq_lJg-9UjJkJ2QHjPfTgMjwhLIgNptKgtR" .
-      "qdoRpJmleFlbuUqyPPJfAzv3Tc6h3kw88tEcI8R3n04xmHOSMwERFFQYJdQDMd2F9SSDe" .
-      "rh40codO_GuPZ7bEUiKq9Lkx2LH5TuhythfsMzIwJpaEA";
+      "eyJhbGciOiJSUzI1NiIsImtpZCI6IjQ5MjcxMGE3ZmNkYjE1Mzk2MGNlMDFmNzYwNTIwY"
+    . "TMyYzg0NTVkZmYiLCJ0eXAiOiJKV1QifQ.eyJhdWQiOiJodHRwOi8vZXhhbXBsZS5jb20"
+    . "iLCJhenAiOiI1NDIzMzkzNTc2MzgtY3IwZHNlcnIyZXZnN3N2MW1lZ2hxZXU3MDMyNzRm"
+    . "M2hAZGV2ZWxvcGVyLmdzZXJ2aWNlYWNjb3VudC5jb20iLCJlbWFpbCI6IjU0MjMzOTM1N"
+    . "zYzOC1jcjBkc2VycjJldmc3c3YxbWVnaHFldTcwMzI3NGYzaEBkZXZlbG9wZXIuZ3Nlcn"
+    . "ZpY2VhY2NvdW50LmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJleHAiOjE1OTEzNDI"
+    . "3NzYsImlhdCI6MTU5MTMzOTE3NiwiaXNzIjoiaHR0cHM6Ly9hY2NvdW50cy5nb29nbGUu"
+    . "Y29tIiwic3ViIjoiMTA0MzQxNDczMTMxODI1OTU3NjAzIn0.GGDE_5HoLacyqdufdxnAC"
+    . "rXxYySKQYAzSQ5qfGjSUriuO3uLm2-rwSPFfLzzBeflEHdVX7XRFFszpxKajuZklF4dXd"
+    . "0evB1u5i3QeCJ8MSZKKx6qus_ETJv4rtuPNEuyhaRcShB7BwI8RY0IZ4_EDrhYqYInrO2"
+    . "wQyJGYvc41JcmoKzRoNnEVydN0Qppt9bqevq_lJg-9UjJkJ2QHjPfTgMjwhLIgNptKgtR"
+    . "qdoRpJmleFlbuUqyPPJfAzv3Tc6h3kw88tEcI8R3n04xmHOSMwERFFQYJdQDMd2F9SSDe"
+    . "rh40codO_GuPZ7bEUiKq9Lkx2LH5TuhythfsMzIwJpaEA";
 
 my $oidc_jwk_bodk = q{
       {
@@ -82,9 +83,10 @@ my $oidc_jwk_bodk = q{
 };
 
 my $expected_aud = "http://example.com";
-my $expected_azp = '542339357638-cr0dserr2evg7sv1meghqeu703274f3h@developer.gserviceaccount.com';
+my $expected_azp =
+'542339357638-cr0dserr2evg7sv1meghqeu703274f3h@developer.gserviceaccount.com';
 my $unexpired_test_time = localtime 1591339181;
-my $expired_test_time = $unexpired_test_time + 86400;
+my $expired_test_time   = $unexpired_test_time + 86400;
 
 =pod
 
