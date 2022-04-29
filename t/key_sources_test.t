@@ -130,6 +130,8 @@ throws_ok { $source->refresh_keys } qr/KeySourceError: Unable to parse JSON/,
 TODO:
 {
     local $TODO = 'return code and content do not match for some reason';
+    eval { $source->refresh_keys };
+    $response = $source->{last_response};
     is( $response->{_rc},      404,           'return code matches' );
     is( $response->{_content}, 'not a found', 'content matches' );
 }
@@ -364,14 +366,10 @@ $source = Google::Auth::IDTokens::JwkHttpKeySource->new($params);
 $ua->unmap_all();
 $ua->map_response( qr/\Q$jwk_uri\E/, $unrecognized_kt_hr );
 
-TODO:
-{
-    local $TODO = 'throw correct exception';
+throws_ok { $source->refresh_keys }
+  qr/Cannot use key type blah/,
+  'raises an error when an unrecognized key type is encountered';
 
-    throws_ok { $source->refresh_keys }
-    qr/Cannot use key type blah/,
-        'raises an error when an unrecognized key type is encountered';
-}
 
 #
 # Positive JwkHttp test

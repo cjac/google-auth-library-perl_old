@@ -317,15 +317,16 @@ sub current_keys { return $_[0]->{current_keys} }
 sub refresh_keys
 {
     my ($self) = @_;
+    $self->{allow_refresh_at} = DateTime->now
+      unless( exists $self->{allow_refresh_at} );
+
     if ( DateTime->compare( DateTime->now, $self->{allow_refresh_at} ) < 0 )
     {
-        print STDERR 'cache hit', $/ if $ENV{TESTING};
+        print STDERR 'cache hit', $/ if $ENV{TESTING} && $ENV{VERBOSE};
         return @{ $self->{current_keys} };
     }
     print STDERR 'cache miss', $/ if $ENV{TESTING} && $ENV{VERBOSE};
 
-    $self->{allow_refresh_at} =
-        DateTime->now()->add( seconds => $self->{retry_interval} );
 
     my $response = $self->{ua}->get( $self->{uri} );
 
@@ -333,10 +334,16 @@ sub refresh_keys
             . $response->status_line() )
         unless $response->is_success;
 
+    $self->{last_response} = $response;
     my $data = eval { $coder->decode( $response->decoded_content ) };
-    die "KeySourceError: Unable to parse JSON: $@" if $@;
+    die("KeySourceError: Unable to parse JSON: $@") if $@;
 
     $self->{current_keys} = [ $self->interpret_json($data) ];
+
+    $self->{allow_refresh_at} =
+      DateTime->now()->add( seconds => $self->{retry_interval} );
+
+    return @{ $self->{current_keys} };
 }
 
 sub interpret_json
