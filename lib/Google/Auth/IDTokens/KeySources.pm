@@ -323,10 +323,9 @@ sub refresh_keys
     if ( DateTime->compare( DateTime->now, $self->{allow_refresh_at} ) < 0 )
     {
         print STDERR 'cache hit', $/ if $ENV{TESTING} && $ENV{VERBOSE};
-        return @{ $self->{current_keys} };
+        return $self->{current_keys};
     }
     print STDERR 'cache miss', $/ if $ENV{TESTING} && $ENV{VERBOSE};
-
 
     my $response = $self->{ua}->get( $self->{uri} );
 
@@ -343,7 +342,7 @@ sub refresh_keys
     $self->{allow_refresh_at} =
       DateTime->now()->add( seconds => $self->{retry_interval} );
 
-    return @{ $self->{current_keys} };
+    return $self->{current_keys};
 }
 
 sub interpret_json
